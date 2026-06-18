@@ -14,8 +14,18 @@ export type SessionData = {
   user?: SessionUser;
 };
 
+function getSessionPassword(): string {
+  const p = process.env.SESSION_PASSWORD;
+  if (!p || p.length < 32) {
+    throw new Error(
+      'SESSION_PASSWORD belum di-set atau kurang dari 32 karakter. Set di Vercel Environment Variables (Settings → Environment Variables) lalu redeploy.'
+    );
+  }
+  return p;
+}
+
 export const sessionOptions: SessionOptions = {
-  password: process.env.SESSION_PASSWORD!,
+  password: getSessionPassword(),
   cookieName: 'mess_session',
   cookieOptions: {
     httpOnly: true,
