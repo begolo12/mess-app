@@ -14,37 +14,31 @@ export type SessionData = {
   user?: SessionUser;
 };
 
+let cachedPassword: string | null = null;
 function getSessionPassword(): string {
+  if (cachedPassword) return cachedPassword;
   const p = process.env.SESSION_PASSWORD;
   if (!p || p.length < 32) {
     throw new Error(
       'SESSION_PASSWORD belum di-set atau kurang dari 32 karakter. Set di Vercel Environment Variables (Settings → Environment Variables) lalu redeploy.'
     );
   }
+  cachedPassword = p;
   return p;
 }
 
-function buildSessionOptions(): SessionOptions {
-  return {
-    password: getSessionPassword(),
-    cookieName: 'mess_session',
-    cookieOptions: {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-    },
-  };
-}
-
-// Defer to runtime to avoid build-time env resolution issues on Vercel
-let _sessionOptions: SessionOptions | null = null;
-export const sessionOptions: SessionOptions = new Proxy({} as SessionOptions, {
-  get(_target, prop) {
-    if (!_sessionOptions) _sessionOptions = buildSessionOptions();
-    return (_sessionOptions as any)[prop];
+export const sessionOptions: SessionOptions = {
+  get password() {
+    return getSessionPassword();
   },
-});
+  cookieName: 'mess_session',
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+  },
+};
 
 export async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
