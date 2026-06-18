@@ -24,16 +24,27 @@ function getSessionPassword(): string {
   return p;
 }
 
-export const sessionOptions: SessionOptions = {
-  password: getSessionPassword(),
-  cookieName: 'mess_session',
-  cookieOptions: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
+function buildSessionOptions(): SessionOptions {
+  return {
+    password: getSessionPassword(),
+    cookieName: 'mess_session',
+    cookieOptions: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    },
+  };
+}
+
+// Defer to runtime to avoid build-time env resolution issues on Vercel
+let _sessionOptions: SessionOptions | null = null;
+export const sessionOptions: SessionOptions = new Proxy({} as SessionOptions, {
+  get(_target, prop) {
+    if (!_sessionOptions) _sessionOptions = buildSessionOptions();
+    return (_sessionOptions as any)[prop];
   },
-};
+});
 
 export async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions);
